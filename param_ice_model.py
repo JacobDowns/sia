@@ -28,6 +28,7 @@ class ParamIceModel(object):
         # Linear smb
         smb =  p_var*Constant(1./pcs['spy'])*(1.0 - (2./margin_x)*x[0])
         model_inputs.smb = smb
+        self.p = p
         self.p_var = p_var
         self.smb = smb
 
@@ -40,14 +41,10 @@ class ParamIceModel(object):
 
         ### Create object for doing differentiation of constrained problem
 
-        self.vi_dif = VIDif(model.F_steady, model.J_steady)
-
-        quit()
-
+        self.vi_dif = VIDif(model.H, model.F_steady, model.J_steady, model.comm)
         # Generic vector to store dF_dp
         self.F_dp_d = assemble(self.model.F_steady)
-        self.__assemble_F_dp__()
-        #plot(project(smb, model_inputs.V), interactive = True)
+
 
 
 
@@ -55,8 +52,29 @@ class ParamIceModel(object):
         assemble(diff(self.model.F_steady, self.p_var), tensor = self.F_dp_d)
 
 
+    def get_H_dp(self, p):
+        self.run_steady(p)
+        self.vi_dif.update_u()
+        self.__assemble_F_dp__()
+        self.vi_dif.__assemble_phi_dp__(self.F_dp_d.array())
+        self.vi_dif.__assemble_u_dp__()
+
+        from matplotlib import pyplot as plt
+        plt.plot(self.vi_dif.u_dp_p.getArray())
+        plt.show()
+
+
+    def run_steady(self, p):
+        T = 135000.0 * pcs['spy']
+        self.model.t = 0.
+        dt = 10. * pcs['spy']
+        self.p.assign(p)
+
+        while self.model.t < T:
+            self.model.step(dt)
 
 
 
 model_inputs = ModelInputs('out/steady/steady_base2.h5')
-fsa = FSA(model_inputs)
+model = ParamIceModel(model_inputs)
+model.get_H_dp(1.5)

@@ -14,9 +14,9 @@ by u and p.
 
 class VIDif(object):
 
-    def __init__(self, u, F, F_du):
+    def __init__(self, u, F, F_du, comm):
         # MPI comm
-        self.comm = param_model.comm
+        self.comm = comm
         # Unknown
         self.u = u
         # PDE residual
@@ -62,12 +62,11 @@ class VIDif(object):
         self.ksp = PETSc.KSP()
         self.ksp.create(self.comm)
         self.ksp.setFromOptions()
+        self.ksp.setTolerances(1e-16, 1e-16)
 
 
     ### Compute phi / dp
-    def __assemble_phi_dp__(self):
-        # F / dp as numpy array
-        F_dp_np = self.F_dp_np
+    def __assemble_phi_dp__(self, F_dp_np):
         # u as numpy array
         u_np = self.u.vector().array()
         # F as numpy array
@@ -132,24 +131,12 @@ class VIDif(object):
     def __assemble_u_dp__(self):
         # (phi / du) (u / dp) = -(f / dp)
         self.ksp.setOperators(self.phi_du_p)
-        self.ksp.setTolerances(1e-20, 1e-16)
         self.ksp.solve(-self.phi_dp_p, self.u_dp_p)
-
-        #from matplotlib import pyplot as plt
-        #plt.plot(self.u_dp_p.getArray())
-        #plt.plot(self.phi_dp_p.getArray())
-        #plt.show()
 
 
     ### Assemble everything that depends on u
-    def assemble_u(self):
+    def update_u(self):
         self.__assemble_F__()
         self.__assemble_phi__()
         self.__assemble_F_du__()
         self.__assemble_phi_du__()
-        #self.__assemble_dg_du__()
-
-
-    ### Assemble everything that depends on p
-    def assemble_p(self):
-        self.__assemble_phi_dp__()
