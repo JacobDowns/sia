@@ -19,15 +19,15 @@ class ParamIceModel(object):
         ### Define form of surface mass balance
 
         p_func = Function(model_inputs.V)
-        p = Constant(250e3)
+        p = Constant(1.0)
         p_var = variable(p)
         x = SpatialCoordinate(model_inputs.mesh)
 
 
         # Margin location
-        #margin_x = 200e3
+        margin_x = 200e3
         # Linear smb
-        smb =  Constant(2.0)*Constant(1./pcs['spy'])*(1.0 - (2./p_var)*x[0])
+        smb =  p_var*Constant(1./pcs['spy'])*(1.0 - (2./margin_x)*x[0])
         model_inputs.smb = smb
         self.p = p
         self.p_var = p_var
@@ -109,7 +109,7 @@ model_inputs = ModelInputs('out/steady/steady_base2.h5')
 model = ParamIceModel(model_inputs)
 
 
-p = 250e3
+p = 1.0
 g = 1e16
 i = 0
 while g > 6000.0 and i < 15:
